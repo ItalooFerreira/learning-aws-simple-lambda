@@ -1,0 +1,67 @@
+service: user-stories
+
+custom:
+  customerTableName: 'customer-table-${self:provider.stage}'
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action: 
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["CustomerDynamoDBTable", "Arn" ] }
+
+  environment:
+    CUSTOMER_TABLE: ${self:custom.customerTableName}
+
+functions:
+  task:
+    handler: src/handlers/CustomerHandler.handler
+    events:
+      - http:
+          path: /customer/{id}
+          method: get
+          cors: true
+      - http:
+          path: /customer/
+          method: post
+          cors: true
+      - http:
+          path: /customer/{id}
+          method: put
+          cors: true
+      - http:
+          path: /customer/{id}
+          method: delete
+          cors: true
+      - http:
+          path: /customer/
+          method: get
+          cors: true
+    
+resources:
+  Resources:
+    CustomerDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.customerTableName}
